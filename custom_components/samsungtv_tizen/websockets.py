@@ -98,11 +98,13 @@ class SamsungTVWS:
     def _set_token(self, token):
         _LOGGING.info('New token %s', token)
         if self.token_file is not None:
-            _LOGGING.debug('Save token to file', token)
+            _LOGGING.debug('Save token to file')
             with open(self.token_file, 'w') as token_file:
                 token_file.write(token)
         else:
             self.token = token
+
+    APP_LIST_REPLY_TIMEOUT = 5
 
     def _ws_send(self, command, key_press_delay=None):
         if self.connection is None:
@@ -249,7 +251,14 @@ class SamsungTVWS:
             }
         })
 
-        response = self._process_api_response(self.connection.recv())
+        # The longer self.timeout exists for the pairing prompt; this reply needs no user action
+        self.connection.settimeout(self.APP_LIST_REPLY_TIMEOUT)
+        try:
+            raw_response = self.connection.recv()
+        finally:
+            if self.connection:
+                self.connection.settimeout(self.timeout)
+        response = self._process_api_response(raw_response)
         if response.get('data') and response.get('data').get('data'):
             return response.get('data').get('data')
         else:
