@@ -6,3 +6,7 @@
 .idea/modules.xml
 .idea/vcs.xml
 .idea/workspace.xml
+
+__pycache__/
+custom_components/samsungtv_tizen/token-*.txt
+custom_components/samsungtv_tizen/logo_paths_download.json

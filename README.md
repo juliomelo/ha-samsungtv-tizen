@@ -62,16 +62,15 @@ After a correct installation, your configuration directory should look like the 
 
 # Configuration
 
-1. Enable the component by editing the configuration.yaml file (within the config directory as well).
-Edit it by adding the following lines:
-    ```
-    # Example configuration.yaml entry
-    media_player:
-      - platform: samsungtv_tizen
-        host: IP_ADDRESS
-        mac: MAC_ADDRESS
-    ```
-    **Note**: This is the same as the configuration for the built-in [Samsung Smart TV](https://www.home-assistant.io/integrations/samsungtv/) component.
+TVs are discovered automatically (SSDP, DHCP and zeroconf) while they are on. Go to **Settings > Devices & services**, select **Configure** on the discovered TV and accept the prompt on the TV. The IP address, MAC address and token are stored in the config entry, and the address is updated whenever the TV is found at a new one. If a TV isn't discovered, add it with **Add integration > SamsungTV Tizen**.
+
+The options below are available under **Configure** on the integration.
+
+## Migrating from YAML
+
+Existing `media_player` entries are imported when Home Assistant starts, keeping the name, the entity ID, the options and the token from `token-<ip>.txt`. Remove them from `configuration.yaml` after the import.
+
+1. Options previously set in the configuration.yaml file:
 
     ### Custom configuration variables
 

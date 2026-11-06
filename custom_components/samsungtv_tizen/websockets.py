@@ -38,10 +38,11 @@ class SamsungTVWS:
     _REST_URL_FORMAT = 'http://{host}:8001/api/v2/{append}'
 
     def __init__(self, host, token=None, token_file=None, port=8001, timeout=None, key_press_delay=1,
-                 name='SamsungTvRemote', app_list=None):
+                 name='SamsungTvRemote', app_list=None, token_callback=None):
         self.host = host
         self.token = token
         self.token_file = token_file
+        self.token_callback = token_callback
         self._app_list = app_list
         self.port = port
         self.timeout = None if timeout == 0 else timeout
@@ -93,7 +94,7 @@ class SamsungTVWS:
             except:
                 return ''
         else:
-            return self.token
+            return self.token or ''
 
     def _set_token(self, token):
         _LOGGING.info('New token %s', token)
@@ -103,6 +104,8 @@ class SamsungTVWS:
                 token_file.write(token)
         else:
             self.token = token
+        if self.token_callback is not None:
+            self.token_callback(token)
 
     APP_LIST_REPLY_TIMEOUT = 5
 

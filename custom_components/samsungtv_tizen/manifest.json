@@ -1,14 +1,65 @@
 {
   "domain": "samsungtv_tizen",
   "name": "SamsungTV Tizen",
-  "documentation": "https://github.com/jaruba/ha-samsungtv-tizen",
+  "config_flow": true,
+  "documentation": "https://github.com/juliomelo/ha-samsungtv-tizen",
   "requirements": [
     "websocket-client>=0.56.0",
     "wakeonlan>=2.0.0",
     "numpy>=1.19.2"
   ],
-  "dependencies": [],
-  "codeowners": ["@jaruba"],
-  "homeassistant": "0.99.3",
-  "version": "1.6.1"
+  "dependencies": [
+    "ssdp"
+  ],
+  "codeowners": [
+    "@jaruba"
+  ],
+  "dhcp": [
+    {
+      "hostname": "tizen*"
+    },
+    {
+      "macaddress": "4844F7*"
+    },
+    {
+      "macaddress": "606BBD*"
+    },
+    {
+      "macaddress": "641CB0*"
+    },
+    {
+      "macaddress": "8CC8CD*"
+    },
+    {
+      "macaddress": "8CEA48*"
+    },
+    {
+      "macaddress": "F47B5E*"
+    }
+  ],
+  "homeassistant": "2026.11.0",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "ssdp": [
+    {
+      "st": "urn:samsung.com:device:RemoteControlReceiver:1"
+    },
+    {
+      "manufacturer": "Samsung",
+      "st": "urn:schemas-upnp-org:service:RenderingControl:1"
+    },
+    {
+      "manufacturer": "Samsung Electronics",
+      "st": "urn:schemas-upnp-org:service:RenderingControl:1"
+    }
+  ],
+  "version": "1.7.0",
+  "zeroconf": [
+    {
+      "properties": {
+        "manufacturer": "samsung*"
+      },
+      "type": "_airplay._tcp.local."
+    }
+  ]
 }

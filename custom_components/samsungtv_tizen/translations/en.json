@@ -1,0 +1,57 @@
+{
+  "config": {
+    "flow_title": "{device}",
+    "abort": {
+      "already_configured": "This TV is already configured.",
+      "already_in_progress": "This TV is already being configured.",
+      "cannot_connect": "Could not reach the TV. Check that it is on and try again.",
+      "not_supported": "This Samsung device is not supported."
+    },
+    "error": {
+      "auth_missing": "The TV did not allow the connection. Accept the prompt on the TV or check its External Device Manager settings, then try again.",
+      "invalid_host": "Invalid host."
+    },
+    "step": {
+      "user": {
+        "title": "SamsungTV Tizen",
+        "description": "Most TVs are found automatically. Enter the address only if yours was not discovered.",
+        "data": {
+          "host": "Host or IP address"
+        }
+      },
+      "confirm": {
+        "title": "SamsungTV Tizen",
+        "description": "Do you want to set up {device}? A prompt will appear on the TV, and you will have to accept it."
+      },
+      "pairing": {
+        "title": "SamsungTV Tizen",
+        "description": "Accept the prompt on {device} to allow Home Assistant to connect, then submit."
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_json": "This must be a valid JSON object."
+    },
+    "step": {
+      "init": {
+        "title": "SamsungTV Tizen",
+        "data": {
+          "update_method": "Update method",
+          "update_custom_ping_url": "Custom ping URL",
+          "timeout": "Timeout (seconds)",
+          "broadcast_address": "Wake-on-LAN broadcast address",
+          "source_list": "Source list (JSON)",
+          "app_list": "App list (JSON)",
+          "channel_list": "Channel list (JSON)",
+          "scan_app_http": "Detect the running app over HTTP",
+          "is_frame_tv": "This is a Frame TV",
+          "show_channel_number": "Show the channel number",
+          "show_logos": "Channel logos",
+          "device_id": "SmartThings device ID",
+          "api_key": "SmartThings API key"
+        }
+      }
+    }
+  }
+}

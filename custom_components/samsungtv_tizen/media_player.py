@@ -2,7 +2,6 @@
 import asyncio
 from datetime import timedelta, datetime
 import logging
-import socket
 import json
 import voluptuous as vol
 import os
@@ -20,6 +19,7 @@ from .smartthings import smartthingstv as smartthings
 from .upnp import upnp
 
 from homeassistant import util
+from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.components.media_player import (
     PLATFORM_SCHEMA,
     MediaPlayerDeviceClass,
@@ -37,32 +37,41 @@ from homeassistant.const import (
     CONF_TIMEOUT,
     CONF_API_KEY,
     CONF_DEVICE_ID,
+    CONF_TOKEN,
     STATE_OFF,
     STATE_ON,
 )
+from homeassistant.core import callback
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import dt as dt_util
+
+from .const import (
+    CONF_APP_LIST,
+    CONF_CHANNEL_LIST,
+    CONF_IS_FRAME_TV,
+    CONF_MODEL,
+    CONF_SCAN_APP_HTTP,
+    CONF_SHOW_CHANNEL_NR,
+    CONF_SHOW_LOGOS,
+    CONF_SOURCE_LIST,
+    CONF_UPDATE_CUSTOM_PING_URL,
+    CONF_UPDATE_METHOD,
+    DEFAULT_NAME,
+    DEFAULT_PORT,
+    DEFAULT_SHOW_LOGOS,
+    DEFAULT_SOURCE_LIST,
+    DEFAULT_TIMEOUT,
+    DEFAULT_UPDATE_METHOD,
+    DOMAIN,
+    MEDIA_IMAGE_OPTIONS,
+    PAIRING_TIMEOUT,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-CONF_SHOW_CHANNEL_NR = "show_channel_number"
-
-DEFAULT_NAME = "Samsung TV Remote"
-DEFAULT_PORT = 8002
-DEFAULT_TIMEOUT = 3
 DEFAULT_KEY_CHAIN_DELAY = 1.25
-DEFAULT_UPDATE_METHOD = "ping"
-DEFAULT_SOURCE_LIST = '{"TV": "KEY_TV", "HDMI": "KEY_HDMI"}'
-CONF_UPDATE_METHOD = "update_method"
-CONF_UPDATE_CUSTOM_PING_URL = "update_custom_ping_url"
-CONF_SOURCE_LIST = "source_list"
-CONF_APP_LIST = "app_list"
-CONF_CHANNEL_LIST = "channel_list"
-CONF_SCAN_APP_HTTP = "scan_app_http"
-CONF_IS_FRAME_TV = "is_frame_tv"
-CONF_SHOW_LOGOS = "show_logos"
 
-KNOWN_DEVICES_KEY = "samsungtv_known_devices"
 MEDIA_TYPE_KEY = "send_key"
 MEDIA_TYPE_BROWSER = "browser"
 
@@ -112,11 +121,10 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_BROADCAST_ADDRESS): cv.string,
         vol.Optional(CONF_SCAN_APP_HTTP, default=True): cv.boolean,
         vol.Optional(CONF_IS_FRAME_TV, default=False): cv.boolean,
-        vol.Optional(CONF_SHOW_LOGOS, default="white-color"): cv.string
+        vol.Optional(CONF_SHOW_LOGOS, default=DEFAULT_SHOW_LOGOS): cv.string
     }
 )
 
-MEDIA_IMAGE_OPTIONS = {'none': 'none', 'bluecolor': '05a9f4-color', 'blue-white': '05a9f4-white', 'dark-white': '282c34-white', 'darkblue-white': '212c39-white', 'white-color': 'fff-color', 'transparent-color': 'transparent-color', 'transparent-white': 'transparent-white'}
 MEDIA_IMAGE_BASE_URL = 'https://jaruba.github.io/channel-logos/'
 MEDIA_FILE_IMAGE_TO_PATH = os.path.dirname(os.path.realpath(__file__)) + '/logo_paths.json'
 MEDIA_FILE_IMAGE_TO_PATH_DOWNLOAD = os.path.dirname(os.path.realpath(__file__)) + '/logo_paths_download.json'
@@ -124,69 +132,70 @@ MEDIA_FILE_DAYS_BEFORE_UPDATE = 1
 MEDIA_IMAGE_MIN_SCORE_REQUIRED = 80
 MEDIA_TITLE_KEYWORD_REMOVAL = ['HD']
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
-    """Set up the Samsung TV platform."""
-    known_devices = hass.data.get(KNOWN_DEVICES_KEY)
-    if known_devices is None:
-        known_devices = set()
-        hass.data[KNOWN_DEVICES_KEY] = known_devices
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+    """Import a YAML configuration into a config entry."""
+    _LOGGER.warning(
+        "Configuring samsungtv_tizen in YAML is deprecated: %s was imported, remove it from configuration.yaml",
+        config.get(CONF_HOST),
+    )
+    hass.async_create_task(
+        hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_IMPORT}, data=dict(config)
+        )
+    )
 
-    uuid = None
 
-    # Is this a manual configuration?
-    if config.get(CONF_HOST) is not None:
-        host = config.get(CONF_HOST)
-        port = config.get(CONF_PORT)
-        name = config.get(CONF_NAME)
-        mac = config.get(CONF_MAC)
-        broadcast = config.get(CONF_BROADCAST_ADDRESS)
-        timeout = config.get(CONF_TIMEOUT)
-        update_method = config.get(CONF_UPDATE_METHOD)
-        update_custom_ping_url = config.get(CONF_UPDATE_CUSTOM_PING_URL)
-        source_list = config.get(CONF_SOURCE_LIST)
-        app_list = config.get(CONF_APP_LIST)
-        channel_list = config.get(CONF_CHANNEL_LIST)
-        api_key = config.get(CONF_API_KEY)
-        device_id = config.get(CONF_DEVICE_ID)
-        show_channel_number = config.get(CONF_SHOW_CHANNEL_NR)
-        scan_app_http = config.get(CONF_SCAN_APP_HTTP)
-        is_frame_tv = config.get(CONF_IS_FRAME_TV)
-        show_logos = config.get(CONF_SHOW_LOGOS)
-    elif discovery_info is not None:
-        tv_name = discovery_info.get("name")
-        model = discovery_info.get("model_name")
-        host = discovery_info.get("host")
-        name = f"{tv_name} ({model})"
-        port = DEFAULT_PORT
-        timeout = DEFAULT_TIMEOUT
-        update_method = DEFAULT_UPDATE_METHOD
-        update_custom_ping_url = None
-        source_list = DEFAULT_SOURCE_LIST
-        app_list = None
-        mac = None
-        udn = discovery_info.get("udn")
-        if udn and udn.startswith("uuid:"):
-            uuid = udn[len("uuid:") :]
-    else:
-        _LOGGER.warning("Cannot determine device")
-        return
+async def async_setup_entry(hass, entry, async_add_entities):
+    """Set up the Samsung TV from a config entry."""
+    data = entry.data
+    options = entry.options
 
-    # Only add a device once, so discovered devices do not override manual
-    # config.
-    ip_addr = socket.gethostbyname(host)
-    if ip_addr not in known_devices:
-        known_devices.add(ip_addr)
-        add_entities([SamsungTVDevice(host, port, name, timeout, mac, uuid, update_method, update_custom_ping_url, source_list, app_list, channel_list, api_key, device_id, show_channel_number, broadcast, scan_app_http, is_frame_tv, show_logos)])
-        _LOGGER.info("Samsung TV %s:%d added as '%s'", host, port, name)
-    else:
-        _LOGGER.info("Ignoring duplicate Samsung TV %s:%d", host, port)
+    @callback
+    def async_save_token(token):
+        hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_TOKEN: token})
+
+    # No MAC connection here: it would merge this device with the one from the native integration
+    device_info = DeviceInfo(
+        identifiers={(DOMAIN, entry.entry_id)},
+        manufacturer="Samsung",
+        model=data.get(CONF_MODEL),
+        name=data[CONF_NAME],
+    )
+
+    async_add_entities([
+        SamsungTVDevice(
+            data[CONF_HOST],
+            data.get(CONF_PORT, DEFAULT_PORT),
+            data[CONF_NAME],
+            options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
+            data.get(CONF_MAC),
+            entry.entry_id,
+            options.get(CONF_UPDATE_METHOD, DEFAULT_UPDATE_METHOD),
+            options.get(CONF_UPDATE_CUSTOM_PING_URL),
+            options.get(CONF_SOURCE_LIST, DEFAULT_SOURCE_LIST),
+            options.get(CONF_APP_LIST),
+            options.get(CONF_CHANNEL_LIST),
+            options.get(CONF_API_KEY),
+            options.get(CONF_DEVICE_ID),
+            options.get(CONF_SHOW_CHANNEL_NR, False),
+            options.get(CONF_BROADCAST_ADDRESS),
+            options.get(CONF_SCAN_APP_HTTP, True),
+            options.get(CONF_IS_FRAME_TV, False),
+            options.get(CONF_SHOW_LOGOS, DEFAULT_SHOW_LOGOS),
+            data.get(CONF_TOKEN),
+            lambda token: hass.add_job(async_save_token, token),
+            device_info,
+        )
+    ])
 
 
 class SamsungTVDevice(MediaPlayerEntity):
     """Representation of a Samsung TV."""
 
-    def __init__(self, host, port, name, timeout, mac, uuid, update_method, update_custom_ping_url, source_list, app_list, channel_list, api_key, device_id, show_channel_number, broadcast, scan_app_http, is_frame_tv, show_logos):
+    def __init__(self, host, port, name, timeout, mac, uuid, update_method, update_custom_ping_url, source_list, app_list, channel_list, api_key, device_id, show_channel_number, broadcast, scan_app_http, is_frame_tv, show_logos, token, token_callback, device_info):
         """Initialize the Samsung device."""
+
+        self._attr_device_info = device_info
 
         # Save a reference to the imported classes
         self._host = host
@@ -233,15 +242,14 @@ class SamsungTVDevice(MediaPlayerEntity):
         # Mark the end of a shutdown command (need to wait 15 seconds before
         # sending the next command to avoid turning the TV back ON).
         self._end_of_power_off = None
-        self._token_file = None
         
         self._last_command_time = datetime.now()
         self._last_source_time = None
         self._next_app_list_attempt = None
 
-        # Generate token file only for WS + SSL + Token connection
-        if port == 8002:
-            self._gen_token_file()
+        # For correct auth: the TV waits for the pairing prompt to be accepted
+        if port == 8002 and not token:
+            self._timeout = PAIRING_TIMEOUT
 
         self._ws = SamsungTVWS(
             name=name,
@@ -249,7 +257,8 @@ class SamsungTVDevice(MediaPlayerEntity):
             port=port,
             timeout=self._timeout,
             key_press_delay=KEY_PRESS_TIMEOUT,
-            token_file=self._token_file,
+            token=token,
+            token_callback=token_callback,
             app_list=self._app_list
         )
 
@@ -281,20 +290,6 @@ class SamsungTVDevice(MediaPlayerEntity):
             retval["appST"].update({attr: value_split[idx]})
             
         return retval
-
-    def _gen_token_file(self):
-        self._token_file = os.path.dirname(os.path.realpath(__file__)) + '/token-' + self._host + '.txt'
-
-        if os.path.isfile(self._token_file) is False:
-            # For correct auth
-            self._timeout = 45
-
-            # Create token file for catch possible errors
-            try:
-                handle = open(self._token_file, "w+")
-                handle.close()
-            except:
-                _LOGGER.error("Samsung TV - Error creating token file: %s", self._token_file)
 
     def _power_off_in_progress(self):
         return (
@@ -550,6 +545,10 @@ class SamsungTVDevice(MediaPlayerEntity):
             self.update()
             self.schedule_update_ha_state()
         return bReturn
+
+    async def async_will_remove_from_hass(self):
+        """Close the connection to the TV."""
+        await self.hass.async_add_executor_job(self._ws.close)
 
     @property
     def unique_id(self) -> str:

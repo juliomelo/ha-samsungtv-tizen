@@ -1,0 +1,57 @@
+{
+  "config": {
+    "flow_title": "{device}",
+    "abort": {
+      "already_configured": "Esta TV já está configurada.",
+      "already_in_progress": "Esta TV já está sendo configurada.",
+      "cannot_connect": "Não foi possível acessar a TV. Verifique se ela está ligada e tente novamente.",
+      "not_supported": "Este dispositivo Samsung não é compatível."
+    },
+    "error": {
+      "auth_missing": "A TV não permitiu a conexão. Aceite o aviso na TV ou confira as configurações do Gerenciador de Dispositivos Externos e tente novamente.",
+      "invalid_host": "Endereço inválido."
+    },
+    "step": {
+      "user": {
+        "title": "SamsungTV Tizen",
+        "description": "A maioria das TVs é encontrada automaticamente. Informe o endereço apenas se a sua não tiver sido descoberta.",
+        "data": {
+          "host": "Nome ou endereço IP"
+        }
+      },
+      "confirm": {
+        "title": "SamsungTV Tizen",
+        "description": "Deseja configurar {device}? Um aviso vai aparecer na TV, e você precisará aceitá-lo."
+      },
+      "pairing": {
+        "title": "SamsungTV Tizen",
+        "description": "Aceite o aviso em {device} para permitir a conexão do Home Assistant e depois envie."
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_json": "O valor precisa ser um objeto JSON válido."
+    },
+    "step": {
+      "init": {
+        "title": "SamsungTV Tizen",
+        "data": {
+          "update_method": "Método de atualização",
+          "update_custom_ping_url": "URL personalizada de ping",
+          "timeout": "Tempo limite (segundos)",
+          "broadcast_address": "Endereço de broadcast do Wake-on-LAN",
+          "source_list": "Lista de fontes (JSON)",
+          "app_list": "Lista de aplicativos (JSON)",
+          "channel_list": "Lista de canais (JSON)",
+          "scan_app_http": "Detectar o aplicativo em execução por HTTP",
+          "is_frame_tv": "Esta é uma TV Frame",
+          "show_channel_number": "Mostrar o número do canal",
+          "show_logos": "Logotipos dos canais",
+          "device_id": "ID do dispositivo no SmartThings",
+          "api_key": "Chave de API do SmartThings"
+        }
+      }
+    }
+  }
+}
